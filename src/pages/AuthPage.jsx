@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-import AuthPage from './pages/AuthPage';
-
 const SITE_URL = import.meta.env.VITE_SITE_URL;
 
 export default function AuthPage() {
@@ -29,26 +27,25 @@ export default function AuthPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
-
   useEffect(() => {
-  async function checkUser() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    async function checkUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (user) {
-      const role = user?.user_metadata?.role;
+      if (user) {
+        const userRole = user?.user_metadata?.role || 'customer';
 
-      if (role === 'customer') {
-        window.location.href = '/#/customer';
-      } else if (role === 'provider') {
-        window.location.href = '/#/provider';
+        if (userRole === 'provider') {
+          window.location.hash = '#/provider';
+        } else {
+          window.location.hash = '#/customer';
+        }
       }
     }
-  }
 
-  checkUser();
-}, []);
+    checkUser();
+  }, []);
 
   function formatPhone(value) {
     const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -115,7 +112,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: SITE_URL ? `${SITE_URL}/auth` : undefined,
+            emailRedirectTo: SITE_URL ? `${SITE_URL}/#/auth` : undefined,
             data: {
               full_name: fullName.trim(),
               phone,
@@ -137,27 +134,25 @@ export default function AuthPage() {
         setFullName('');
         setPhone('');
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (signInError) throw signInError;
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const user = signInData?.user;
+        const userRole = user?.user_metadata?.role || 'customer';
 
-        const role = user?.user_metadata?.role;
-
-        if (role === 'customer') {
-          window.location.href = '/#/customer';
-        } else if (role === 'provider') {
-          window.location.href = '/#/provider';
+        if (userRole === 'provider') {
+          window.location.hash = '#/provider';
         } else {
-          setMessage('Giriş başarılı ama rol bulunamadı');
+          window.location.hash = '#/customer';
         }
 
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       }
     } catch (err) {
       setError(err.message || 'Bir hata oluştu');
@@ -178,7 +173,7 @@ export default function AuthPage() {
       setResetLoading(true);
 
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${SITE_URL}/reset-password`,
+        redirectTo: SITE_URL ? `${SITE_URL}/#/auth` : undefined,
       });
 
       if (error) throw error;

@@ -4,7 +4,6 @@ import { supabase } from './lib/supabase';
 import AuthPage from './pages/AuthPage';
 import CustomerDashboard from './pages/CustomerDashboard';
 import ProviderDashboard from './pages/ProviderDashboard';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function getCurrentPath() {
   const hash = window.location.hash || '#/auth';
@@ -22,10 +21,7 @@ export default function App() {
     }
 
     window.addEventListener('hashchange', handleHashChange);
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   useEffect(() => {
@@ -41,7 +37,7 @@ export default function App() {
       setUser(user || null);
 
       if (!window.location.hash) {
-        window.location.hash = user ? '#/auth' : '#/auth';
+        window.location.hash = '#/auth';
       }
 
       setBooting(false);
@@ -61,7 +57,7 @@ export default function App() {
     };
   }, []);
 
-  const role = useMemo(() => user?.user_metadata?.role || null, [user]);
+  const role = useMemo(() => user?.user_metadata?.role || 'customer', [user]);
 
   if (booting) {
     return (
@@ -71,39 +67,16 @@ export default function App() {
     );
   }
 
-  if (path === '/reset-password') {
-    return <ResetPasswordPage />;
-  }
-
   if (!user) {
     return <AuthPage />;
-  }
-
-  if (path === '/customer') {
-    return <CustomerDashboard />;
   }
 
   if (path === '/provider') {
     return <ProviderDashboard />;
   }
 
-  if (path === '/auth') {
-    if (role === 'customer') {
-      window.location.hash = '#/customer';
-      return null;
-    }
-
-    if (role === 'provider') {
-      window.location.hash = '#/provider';
-      return null;
-    }
-
-    return <AuthPage />;
-  }
-
-  if (role === 'customer') {
-    window.location.hash = '#/customer';
-    return null;
+  if (path === '/customer') {
+    return <CustomerDashboard />;
   }
 
   if (role === 'provider') {
@@ -111,5 +84,6 @@ export default function App() {
     return null;
   }
 
-  return <AuthPage />;
+  window.location.hash = '#/customer';
+  return null;
 }
